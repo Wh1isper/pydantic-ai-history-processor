@@ -121,9 +121,8 @@ Users may refer to this tool as 'smol' or 'compact' as well. You should consider
         """
         Returns a tuple of (history, keep_messages)
         """
-        if not n:
-            # No keep messages
-            return message_history, []
+        if not message_history:
+            return [], []
 
         user_prompt_indices = []
         for i, msg in enumerate(message_history):
@@ -137,23 +136,25 @@ Users may refer to this tool as 'smol' or 'compact' as well. You should consider
             # No user prompt in history, keep all
             return [], message_history
 
+        if not n:
+            # Keep current user prompt and compact all
+            keep_messages = []
+            last_model_request: ModelRequest = message_history[user_prompt_indices[-1]]
+            keep_messages.append(last_model_request)
+            logger.info(f"Last model request: {last_model_request}")
+            if any(isinstance(p, ToolReturnPart) for p in message_history[-1].parts):
+                # Include last tool-call and tool-return pair
+                keep_messages.extend(message_history[-2:])
+            return message_history, keep_messages
+
         if len(user_prompt_indices) < n:
             # No enough history to keep
+            logger.warning(f"History too short to keep {n} messages, will keep all")
             return [], message_history
         return (
             message_history[: user_prompt_indices[-n]],
             message_history[user_prompt_indices[-n] :],
         )
-
-    def need_compact(self, message_history: list[ModelMessage], threshold: float | None = None) -> bool:
-        current_token_comsumption = get_current_token_consumption(message_history)
-
-        token_threshold = (threshold or self.compact_threshold) * self.model_context_window
-        will_overflow = (current_token_comsumption or 0) + self.model_settings.get(
-            "max_tokens", 0
-        ) >= self.model_context_window
-
-        return (current_token_comsumption and current_token_comsumption >= token_threshold) or will_overflow
 
     def split_history(
         self,
