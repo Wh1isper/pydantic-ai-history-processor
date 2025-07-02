@@ -5,6 +5,8 @@ from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
     ModelResponse,
+    ToolCallPart,
+    ToolReturnPart,
     UserPromptPart,
 )
 from pydantic_ai.usage import Usage
@@ -66,9 +68,9 @@ def test_compactor_need_compact(compactor: CompactorProcessor):
         ),
         (
             [
-                ModelRequest(parts=[UserPromptPart(content="foo")]),
+                ModelRequest(parts=[UserPromptPart(content="我在")]),
                 ModelResponse(parts=[]),
-                ModelRequest(parts=[UserPromptPart(content="bar")]),
+                ModelRequest(parts=[UserPromptPart(content="北京")]),
                 ModelResponse(parts=[]),
                 ModelRequest(parts=[UserPromptPart(content="Hello")]),
                 ModelResponse(parts=[]),
@@ -81,9 +83,9 @@ def test_compactor_need_compact(compactor: CompactorProcessor):
         ),
         (
             [
-                ModelRequest(parts=[UserPromptPart(content="foo")]),
+                ModelRequest(parts=[UserPromptPart(content="我在")]),
                 ModelResponse(parts=[]),
-                ModelRequest(parts=[UserPromptPart(content="bar")]),
+                ModelRequest(parts=[UserPromptPart(content="北京")]),
                 ModelResponse(parts=[]),
                 ModelRequest(parts=[UserPromptPart(content="Hello")]),
                 ModelResponse(parts=[]),
@@ -92,7 +94,26 @@ def test_compactor_need_compact(compactor: CompactorProcessor):
                 ModelRequest(parts=[UserPromptPart(content="New message")]),
             ],
             CompactStrategy.in_conversation,
-            (9, 0),
+            (9, 1),
+        ),
+        (
+            [
+                ModelRequest(parts=[UserPromptPart(content="我在")]),
+                ModelResponse(parts=[]),
+                ModelRequest(parts=[UserPromptPart(content="北京")]),
+                ModelResponse(parts=[]),
+                ModelRequest(parts=[UserPromptPart(content="Hello")]),
+                ModelResponse(parts=[]),
+                ModelRequest(parts=[UserPromptPart(content="World")]),
+                ModelResponse(parts=[]),
+                ModelRequest(parts=[UserPromptPart(content="New message")]),
+                ModelResponse(parts=[ToolCallPart(tool_name="foo", tool_call_id="1")]),
+                ModelRequest(parts=[ToolReturnPart(tool_name="foo", content="", tool_call_id="1")]),
+                ModelResponse(parts=[ToolCallPart(tool_name="bar", tool_call_id="2")]),
+                ModelRequest(parts=[ToolReturnPart(tool_name="bar", content="", tool_call_id="2")]),
+            ],
+            CompactStrategy.in_conversation,
+            (13, 3),
         ),
     ],
 )

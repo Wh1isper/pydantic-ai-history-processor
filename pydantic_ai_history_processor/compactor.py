@@ -22,6 +22,7 @@ from pydantic_ai_history_processor.log import logger
 from pydantic_ai_history_processor.utils import (
     extract_system_prompts,
     fix_system_prompt,
+    get_current_token_consumption,
 )
 
 _HERE = Path(__file__).parent
@@ -185,6 +186,19 @@ Users may refer to this tool as 'smol' or 'compact' as well. You should consider
 
         ctx.deps.compacted_messages = message_history
         return message_history
+
+    def need_compact(self, message_history: list[ModelMessage], threshold: float | None = None) -> bool:
+        current_token_comsumption = get_current_token_consumption(message_history)
+
+        token_threshold = (threshold or self.compact_threshold) * self.model_context_window
+        will_overflow = (current_token_comsumption or 0) + self.model_settings.get(
+            "max_tokens", 0
+        ) >= self.model_context_window
+        logger.info(
+            f"Current token consumption: {current_token_comsumption} vs {token_threshold}, will overflow: {will_overflow}"
+        )
+
+        return (current_token_comsumption and current_token_comsumption >= token_threshold) or will_overflow
 
     async def _compact(
         self, ctx: RunContext[CompactContext], message_history: list[ModelMessage]
