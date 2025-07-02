@@ -22,7 +22,6 @@ from pydantic_ai_history_processor.log import logger
 from pydantic_ai_history_processor.utils import (
     extract_system_prompts,
     fix_system_prompt,
-    get_current_token_consumption,
 )
 
 _HERE = Path(__file__).parent
